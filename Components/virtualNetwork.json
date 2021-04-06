@@ -1,0 +1,56 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vnetName": {
+            "defaultValue": "CentreStack-VNET",
+            "type": "String"
+        },
+        "vNetAddressSpacePrefix": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/16"
+        },
+        "subNetname": {
+            "type": "string",
+            "defaultValue": "frontEnd"
+        },
+        "subnetAddressSpace": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/24"
+        }
+    },
+    "variables": {
+        "location": "[resourceGroup().location]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-08-01",
+            "name": "[parameters('vnetName')]",
+            "location": "[variables('location')]",
+            "tags": {
+                "CentreStack": "VNET"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vNetAddressSpacePrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('subNetname')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetAddressSpace')]",
+                            "delegations": [],
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": [],
+                "enableDdosProtection": false
+            }
+        }
+    ]
+}

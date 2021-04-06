@@ -1,0 +1,196 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "virtualMachine_Name": {
+            "defaultValue": "CS-WinClient-",
+            "type": "String"
+        },
+        "publicIPAddresses_Windows_IP_externalid": {
+            "defaultValue": "Name of Public IP",
+            "type": "String"
+        },
+        "virtualNetworks_CentreStack_Vnet_externalid": {
+            "defaultValue": "Virtual NetworkName",
+            "type": "String"
+        },
+        "VM_Sku": {
+            "type": "string",
+            "defaultValue": "Standard_B2s"
+        },
+        "adminUserName": {
+            "type": "string"
+        },
+        "adminPassword": {
+            "type": "securestring"
+        }
+    },
+    "variables": {
+        "nicName": "[concat(parameters('virtualMachine_Name'), uniqueString(resourceGroup().id))]",
+        "VM_Name": "[concat(parameters('virtualMachine_Name'), uniqueString(resourceGroup().id))]",
+        "osDiskName": "[concat(variables('VM_Name'),'osDisk',uniqueString(resourceGroup().id))]",
+        "nsgName": "[concat(variables('VM_Name'),'-','NSG')]",
+        "publicIP": "[concat(variables('VM_Name'),'Pulic-IP')]"
+    },
+    "resources": [
+        /*Creates Network security group**/
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2020-08-01",
+            "name": "[variables('nsgName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "RDP",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 300,
+                            "direction": "Inbound",
+                            "sourcePortRanges": [],
+                            "destinationPortRanges": [],
+                            "sourceAddressPrefixes": [],
+                            "destinationAddressPrefixes": []
+                        }
+                    }
+                ]
+            }
+        },
+        /*Security Group RDP port 3389 inbound**/
+        {
+            "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+            "apiVersion": "2020-08-01",
+            "name": "[concat(variables('VM_Name'), '/RDP')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+            ],
+            "properties": {
+                "protocol": "TCP",
+                "sourcePortRange": "*",
+                "destinationPortRange": "3389",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "*",
+                "access": "Allow",
+                "priority": 300,
+                "direction": "Inbound",
+                "sourcePortRanges": [],
+                "destinationPortRanges": [],
+                "sourceAddressPrefixes": [],
+                "destinationAddressPrefixes": []
+            }
+        },
+        /*Creates the virtual machine**/
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2020-12-01",
+            "name": "[variables('VM_Name')]",
+            "location": "[resourceGroup().location]",
+            "plan": {
+                "name": "pro-preview",
+                "product": "windows10preview",
+                "publisher": "microsoft-hyperv"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('VM_Sku')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "microsoft-hyperv",
+                        "offer": "windows10preview",
+                        "sku": "pro-preview",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Windows",
+                        "name": "[concat(variables('VM_Name'), '_OsDisk_1_', resourceGroup().id)]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS",
+                            "id": "[variables('osDiskName')]"
+                        },
+                        "diskSizeGB": 127
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('VM_Name')]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": true,
+                        "patchSettings": {
+                            "patchMode": "AutomaticByOS",
+                            "enableHotpatching": false
+                        }
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true,
+                    "requireGuestProvisionSignal": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[variables('osDiskName')]"
+                        }
+                    ]
+                }
+            }
+        },
+        /*Creates the NIC**/
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-08-01",
+            "name": "[variables('nicName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.5",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[parameters('publicIPAddresses_Windows_IP_externalid')]"
+                            },
+                            "subnet": {
+                                "id": "[concat(parameters('virtualNetworks_CentreStack_Vnet_externalid'), '/subnets/frontEnd')]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false
+            }
+        },
+        /*Creates the public IP**/
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2020-08-01",
+            "name": "[variables('publicIP')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "ipTags": []
+            }
+        }
+    ]
+}
