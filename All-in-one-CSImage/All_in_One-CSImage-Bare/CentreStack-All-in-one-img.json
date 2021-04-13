@@ -121,7 +121,10 @@
                 "name": "Standard_LRS"
             },
             "kind": "StorageV2",
-            "properties": {}
+            "properties": {},
+            "tags": {
+                "displayname": "Diagnostics Storage Account"
+            }
         },
         /*Creates storage account for the Centrestack solution, either locally or geo redundant*/
         {
@@ -158,6 +161,9 @@
                     "keySource": "Microsoft.Storage"
                 },
                 "accessTier": "Hot"
+            },
+            "tags": {
+                "displayname": "Storage Account"
             }
         },
         /*Creates the public IP for the CentreStack Server*/
@@ -174,6 +180,9 @@
                 "dnsSettings": {
                     "domainNameLabel": "[variables('dnsNetworkPrefix')]"
                 }
+            },
+            "tags": {
+                "displayname": "Public IP"
             }
         },
         /*Creates the security groups with port 80, 443, 3389*/
@@ -224,6 +233,9 @@
                         }
                     }
                 ]
+            },
+            "tags": {
+                "displayname": "Network Security Group"
             }
         },
         /*Creates the virtual network*/
@@ -257,6 +269,9 @@
                         }
                     }
                 ]
+            },
+            "tags": {
+                "displayname": "Virtual Network"
             }
         },
         /*Creates the network interface for the virtual machine.*/
@@ -284,6 +299,9 @@
                         }
                     }
                 ]
+            },
+            "tags": {
+                "displayname": "Network Interface"
             }
         },
         /*Creates the virtual machine.*/
@@ -337,6 +355,9 @@
                 "name": "[variables('sku')]",
                 "publisher": "[variables('ImagePublisher')]",
                 "product": "[variables('ImageOffer')]"
+            },
+            "tags": {
+                "displayname": "CentreStack VM"
             }
         }
     ],
